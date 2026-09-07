@@ -56,6 +56,7 @@ def test_rss_contains_image_and_self_link():
     assert root.findtext("channel/item/guid") == "https://example.test/1"
     assert "https://example.test/1.png" in root.findtext("channel/item/description")
     assert root.find("channel/{http://www.w3.org/2005/Atom}link").attrib["href"] == "https://feeds.test/test.xml"
+    assert root.find("channel/item/enclosure") is None
 
 
 def test_xkcd_feed_includes_hovertext_and_date():

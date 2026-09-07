@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import html
-import mimetypes
 import re
 import sys
 from dataclasses import dataclass
@@ -248,8 +247,6 @@ def build_rss(config: dict[str, Any], items: list[ComicItem], feed_url: str) -> 
             )
         ET.SubElement(item, "description").text = image_html
         ET.SubElement(item, f"{{{CONTENT_NS}}}encoded").text = image_html
-        mime_type = mimetypes.guess_type(comic_item.image_url.split("?", 1)[0])[0] or "image/jpeg"
-        ET.SubElement(item, "enclosure", {"url": comic_item.image_url, "length": "0", "type": mime_type})
 
     ET.indent(rss, space="  ")
     return ET.tostring(rss, encoding="utf-8", xml_declaration=True)
