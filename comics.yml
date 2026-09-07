@@ -10,3 +10,9 @@ comics:
     latest_url: https://xkcd.com/info.0.json
     item_url_template: https://xkcd.com/{number}/info.0.json
     max_items: 10
+  - slug: smbc
+    name: Saturday Morning Breakfast Cereal
+    homepage: https://www.smbc-comics.com/
+    source: smbc
+    discovery_url: https://www.smbc-comics.com/
+    max_items: 10

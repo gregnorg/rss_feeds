@@ -14,6 +14,14 @@ comics:
     item_url_template: https://xkcd.com/{number}/info.0.json
     max_items: 10
 
+  # SMBC entries include the main comic, hover text, and bonus panel.
+  - slug: smbc
+    name: Saturday Morning Breakfast Cereal
+    homepage: https://www.smbc-comics.com/
+    source: smbc
+    discovery_url: https://www.smbc-comics.com/
+    max_items: 10
+
   # Generic HTML example:
   - slug: example-comic
     name: Example Comic

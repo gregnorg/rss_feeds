@@ -35,6 +35,7 @@ class ComicItem:
     image_url: str
     published: datetime | None = None
     hovertext: str = ""
+    bonus_image_url: str = ""
 
 
 def get_text(root: Tag, selector: str | None, fallback: str = "") -> str:
@@ -160,6 +161,52 @@ def scrape_xkcd(config: dict[str, Any], session: requests.Session) -> list[Comic
     return results
 
 
+def scrape_smbc(config: dict[str, Any], session: requests.Session) -> list[ComicItem]:
+    max_items = int(config.get("max_items", 10))
+    results: list[ComicItem] = []
+    item_url = config["discovery_url"]
+    seen: set[str] = set()
+
+    while len(results) < max_items and item_url not in seen:
+        seen.add(item_url)
+        page = fetch_soup(session, item_url)
+        image = page.select_one(config.get("image_selector", "#cc-comic"))
+        if not image or not image.get("src"):
+            print(f"warning: no comic image found for {item_url}", file=sys.stderr)
+            break
+
+        page_title = page.title.get_text(" ", strip=True) if page.title else "SMBC"
+        title = re.sub(r"^Saturday Morning Breakfast Cereal\s+-\s+", "", page_title)
+        permalink = page.select_one(config.get("permalink_selector", ".cc-newsheader a[href]"))
+        canonical_url = (
+            urljoin(item_url, str(permalink.get("href")))
+            if permalink and permalink.get("href") else item_url
+        )
+        image_url = urljoin(item_url, str(image.get("src")))
+        date_match = re.search(r"(?<!\d)(20\d{6})(?!\d)", image_url)
+        published = None
+        if date_match:
+            published = datetime.strptime(date_match.group(1), "%Y%m%d").replace(tzinfo=timezone.utc)
+
+        bonus = page.select_one(config.get("bonus_image_selector", "#aftercomic img"))
+        bonus_url = urljoin(item_url, str(bonus.get("src"))) if bonus and bonus.get("src") else ""
+        results.append(ComicItem(
+            title=f"SMBC: {title}",
+            url=canonical_url,
+            image_url=image_url,
+            published=published,
+            hovertext=str(image.get("title", "")),
+            bonus_image_url=bonus_url,
+        ))
+
+        previous = page.select_one(config.get("previous_link_selector", "a.cc-prev[href]"))
+        if not previous or not previous.get("href"):
+            break
+        item_url = urljoin(item_url, str(previous.get("href")))
+
+    return results
+
+
 def safe_slug(value: str) -> str:
     slug = re.sub(r"[^a-z0-9-]+", "-", value.lower()).strip("-")
     if not slug or slug != value:
@@ -192,6 +239,13 @@ def build_rss(config: dict[str, Any], items: list[ComicItem], feed_url: str) -> 
         )
         if comic_item.hovertext:
             image_html += f'<p>{html.escape(comic_item.hovertext)}</p>'
+        if comic_item.bonus_image_url:
+            image_html += (
+                '<p><strong>Bonus panel:</strong></p>'
+                f'<p><a href="{html.escape(comic_item.url, quote=True)}">'
+                f'<img src="{html.escape(comic_item.bonus_image_url, quote=True)}" '
+                f'alt="Bonus panel for {html.escape(comic_item.title, quote=True)}"></a></p>'
+            )
         ET.SubElement(item, "description").text = image_html
         ET.SubElement(item, f"{{{CONTENT_NS}}}encoded").text = image_html
         mime_type = mimetypes.guess_type(comic_item.image_url.split("?", 1)[0])[0] or "image/jpeg"
@@ -228,7 +282,13 @@ def generate(config_path: Path, output_dir: Path, base_url: str = "") -> None:
     for comic in comics:
         slug = safe_slug(comic["slug"])
         print(f"scraping {comic['name']}...")
-        items = scrape_xkcd(comic, session) if comic.get("source") == "xkcd" else scrape_comic(comic, session)
+        source = comic.get("source")
+        if source == "xkcd":
+            items = scrape_xkcd(comic, session)
+        elif source == "smbc":
+            items = scrape_smbc(comic, session)
+        else:
+            items = scrape_comic(comic, session)
         feed_url = f"{base_url.rstrip('/')}/{slug}.xml" if base_url else ""
         (output_dir / f"{slug}.xml").write_bytes(build_rss(comic, items, feed_url))
         feeds.append((slug, comic["name"]))

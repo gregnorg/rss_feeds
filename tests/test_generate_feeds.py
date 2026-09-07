@@ -7,7 +7,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
-from generate_feeds import build_rss, scrape_comic, scrape_xkcd
+from generate_feeds import build_rss, scrape_comic, scrape_smbc, scrape_xkcd
 
 
 class FakeResponse:
@@ -85,3 +85,30 @@ def test_xkcd_feed_includes_hovertext_and_date():
     assert items[0].title == "xkcd 2: Petit Trees"
     assert "Petit Prince" in description
     assert root.findtext("channel/item/pubDate") == "Mon, 02 Jan 2006 00:00:00 +0000"
+
+
+def test_smbc_feed_includes_hovertext_and_bonus_panel():
+    session = Mock()
+    session.get.return_value = FakeResponse('''
+          <title>Saturday Morning Breakfast Cereal - Test Comic</title>
+          <div class="cc-newsheader"><a href="/comic/test-comic">Test Comic</a></div>
+          <img id="cc-comic" src="/comics/123-20260907.png" title="Main hover text">
+          <div id="aftercomic"><img src="/comics/bonus.png"></div>
+          <a class="cc-prev" href="/comic/previous"></a>
+        ''')
+    config = {
+        "homepage": "https://www.smbc-comics.com/",
+        "discovery_url": "https://www.smbc-comics.com/",
+        "max_items": 1,
+    }
+    items = scrape_smbc(config, session)
+    xml = build_rss({"name": "SMBC", "homepage": config["homepage"]}, items, "")
+    root = ET.fromstring(xml)
+    description = root.findtext("channel/item/description")
+    assert len(items) == 1
+    assert items[0].title == "SMBC: Test Comic"
+    assert items[0].url == "https://www.smbc-comics.com/comic/test-comic"
+    assert "Main hover text" in description
+    assert "Bonus panel:" in description
+    assert "https://www.smbc-comics.com/comics/bonus.png" in description
+    assert root.findtext("channel/item/pubDate") == "Mon, 07 Sep 2026 00:00:00 +0000"

@@ -10,6 +10,8 @@ Edit `comics.yml`. See `comics.example.yml` for the supported fields and a full
 example. CSS selectors can be found with a browser's Inspect Element command.
 XKCD is preconfigured using its JSON metadata endpoints, which provide reliable
 titles, dates, image URLs, and hover text.
+SMBC is also preconfigured; its separate feed includes the main comic, visible
+hover text, and the bonus panel from each post.
 
 Two common layouts are supported:
 
