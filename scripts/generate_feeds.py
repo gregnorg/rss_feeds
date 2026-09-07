@@ -21,9 +21,7 @@ from bs4 import BeautifulSoup, Tag
 
 
 USER_AGENT = "personal-webcomic-rss/1.0 (+GitHub Actions)"
-CONTENT_NS = "http://purl.org/rss/1.0/modules/content/"
 ATOM_NS = "http://www.w3.org/2005/Atom"
-ET.register_namespace("content", CONTENT_NS)
 ET.register_namespace("atom", ATOM_NS)
 
 
@@ -288,7 +286,6 @@ def build_rss(config: dict[str, Any], items: list[ComicItem], feed_url: str) -> 
                 f'alt="Bonus panel for {html.escape(comic_item.title, quote=True)}"></a></p>'
             )
         ET.SubElement(item, "description").text = item_html
-        ET.SubElement(item, f"{{{CONTENT_NS}}}encoded").text = item_html
 
     ET.indent(rss, space="  ")
     return ET.tostring(rss, encoding="utf-8", xml_declaration=True)
