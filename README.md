@@ -43,8 +43,8 @@ Open `dist/index.html` to inspect the generated feed list.
 4. The workflow's deployment job shows the Pages URL. Subscribe to
    `<Pages URL>/<comic-slug>.xml` in your RSS reader.
 
-Scheduled GitHub Actions use UTC. The current schedule runs at minute 17 every
-sixth hour to avoid the busiest top-of-hour window.
+The schedule uses the `America/Denver` timezone and runs daily at 5:00 AM,
+11:00 AM, 5:00 PM, and 11:00 PM. GitHub handles daylight-saving changes.
 
 Please keep request volume modest and respect each site's terms, robots policy,
 and creators. If a comic already provides an official RSS feed, prefer it.

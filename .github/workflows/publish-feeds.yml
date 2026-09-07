@@ -11,7 +11,8 @@ on:
       - "tests/**"
       - ".github/workflows/publish-feeds.yml"
   schedule:
-    - cron: "17 */6 * * *"
+    - cron: "0 5,11,17,23 * * *"
+      timezone: "America/Denver"
 
 permissions:
   contents: read
@@ -57,4 +58,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
