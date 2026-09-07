@@ -31,10 +31,11 @@ ET.register_namespace("atom", ATOM_NS)
 class ComicItem:
     title: str
     url: str
-    image_url: str
+    image_url: str = ""
     published: datetime | None = None
     hovertext: str = ""
     bonus_image_url: str = ""
+    content_html: str = ""
 
 
 def get_text(root: Tag, selector: str | None, fallback: str = "") -> str:
@@ -206,6 +207,44 @@ def scrape_smbc(config: dict[str, Any], session: requests.Session) -> list[Comic
     return results
 
 
+def scrape_penny_arcade(config: dict[str, Any], session: requests.Session) -> list[ComicItem]:
+    feed_url = config["feed_url"]
+    response = session.get(feed_url, timeout=30)
+    response.raise_for_status()
+    upstream = ET.fromstring(response.text)
+    max_items = int(config.get("max_items", 20))
+    results: list[ComicItem] = []
+
+    for upstream_item in upstream.findall("./channel/item")[:max_items]:
+        title = upstream_item.findtext("title", "Untitled").strip()
+        item_url = urljoin(feed_url, upstream_item.findtext("link", "").strip())
+        if not item_url:
+            continue
+        published = parse_date(upstream_item.findtext("pubDate", ""))
+
+        if "/comic/" in item_url:
+            page = fetch_soup(session, item_url)
+            image_meta = page.select_one('meta[property="og:image"][content]')
+            if not image_meta or not image_meta.get("content"):
+                print(f"warning: no comic image found for {item_url}", file=sys.stderr)
+                continue
+            results.append(ComicItem(
+                title=f"[Comic] {title}",
+                url=item_url,
+                image_url=urljoin(item_url, str(image_meta.get("content"))),
+                published=published,
+            ))
+        elif "/news/post/" in item_url:
+            results.append(ComicItem(
+                title=f"[Blog] {title}",
+                url=item_url,
+                published=published,
+                content_html=upstream_item.findtext("description", ""),
+            ))
+
+    return results
+
+
 def safe_slug(value: str) -> str:
     slug = re.sub(r"[^a-z0-9-]+", "-", value.lower()).strip("-")
     if not slug or slug != value:
@@ -230,23 +269,26 @@ def build_rss(config: dict[str, Any], items: list[ComicItem], feed_url: str) -> 
         ET.SubElement(item, "guid", {"isPermaLink": "true"}).text = comic_item.url
         if comic_item.published:
             ET.SubElement(item, "pubDate").text = format_datetime(comic_item.published)
-        image_html = (
-            f'<p><a href="{html.escape(comic_item.url, quote=True)}">'
-            f'<img src="{html.escape(comic_item.image_url, quote=True)}" '
-            f'alt="{html.escape(comic_item.title, quote=True)}" '
-            f'title="{html.escape(comic_item.hovertext, quote=True)}"></a></p>'
-        )
+        if comic_item.content_html:
+            item_html = comic_item.content_html
+        else:
+            item_html = (
+                f'<p><a href="{html.escape(comic_item.url, quote=True)}">'
+                f'<img src="{html.escape(comic_item.image_url, quote=True)}" '
+                f'alt="{html.escape(comic_item.title, quote=True)}" '
+                f'title="{html.escape(comic_item.hovertext, quote=True)}"></a></p>'
+            )
         if comic_item.hovertext:
-            image_html += f'<p>{html.escape(comic_item.hovertext)}</p>'
+            item_html += f'<p>{html.escape(comic_item.hovertext)}</p>'
         if comic_item.bonus_image_url:
-            image_html += (
+            item_html += (
                 '<p><strong>Bonus panel:</strong></p>'
                 f'<p><a href="{html.escape(comic_item.url, quote=True)}">'
                 f'<img src="{html.escape(comic_item.bonus_image_url, quote=True)}" '
                 f'alt="Bonus panel for {html.escape(comic_item.title, quote=True)}"></a></p>'
             )
-        ET.SubElement(item, "description").text = image_html
-        ET.SubElement(item, f"{{{CONTENT_NS}}}encoded").text = image_html
+        ET.SubElement(item, "description").text = item_html
+        ET.SubElement(item, f"{{{CONTENT_NS}}}encoded").text = item_html
 
     ET.indent(rss, space="  ")
     return ET.tostring(rss, encoding="utf-8", xml_declaration=True)
@@ -284,6 +326,8 @@ def generate(config_path: Path, output_dir: Path, base_url: str = "") -> None:
             items = scrape_xkcd(comic, session)
         elif source == "smbc":
             items = scrape_smbc(comic, session)
+        elif source == "penny-arcade":
+            items = scrape_penny_arcade(comic, session)
         else:
             items = scrape_comic(comic, session)
         feed_url = f"{base_url.rstrip('/')}/{slug}.xml" if base_url else ""

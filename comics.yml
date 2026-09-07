@@ -16,3 +16,9 @@ comics:
     source: smbc
     discovery_url: https://www.smbc-comics.com/
     max_items: 10
+  - slug: penny-arcade
+    name: Penny Arcade
+    homepage: https://www.penny-arcade.com/
+    source: penny-arcade
+    feed_url: https://www.penny-arcade.com/feed
+    max_items: 20

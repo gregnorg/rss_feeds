@@ -7,7 +7,13 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
-from generate_feeds import build_rss, scrape_comic, scrape_smbc, scrape_xkcd
+from generate_feeds import (
+    build_rss,
+    scrape_comic,
+    scrape_penny_arcade,
+    scrape_smbc,
+    scrape_xkcd,
+)
 
 
 class FakeResponse:
@@ -113,3 +119,30 @@ def test_smbc_feed_includes_hovertext_and_bonus_panel():
     assert "Bonus panel:" in description
     assert "https://www.smbc-comics.com/comics/bonus.png" in description
     assert root.findtext("channel/item/pubDate") == "Mon, 07 Sep 2026 00:00:00 +0000"
+
+
+def test_penny_arcade_combines_comic_image_and_blog_post():
+    upstream_feed = '''<?xml version="1.0"?>
+      <rss version="2.0"><channel>
+        <item><title>A Comic</title><link>https://www.penny-arcade.com/comic/2026/09/07/a-comic</link>
+          <description>New Comic: A Comic</description><pubDate>Mon, 07 Sep 2026 07:01:00 +0000</pubDate></item>
+        <item><title>A Post</title><link>https://www.penny-arcade.com/news/post/2026/09/07/a-post</link>
+          <description><![CDATA[<p>The complete blog body.</p>]]></description>
+          <pubDate>Mon, 07 Sep 2026 19:23:00 +0000</pubDate></item>
+      </channel></rss>'''
+    comic_page = '<meta property="og:image" content="https://assets.penny-arcade.com/comic.jpg">'
+    session = Mock()
+    session.get.side_effect = [FakeResponse(upstream_feed), FakeResponse(comic_page)]
+    config = {"feed_url": "https://www.penny-arcade.com/feed", "max_items": 10}
+
+    items = scrape_penny_arcade(config, session)
+    xml = build_rss(
+        {"name": "Penny Arcade", "homepage": "https://www.penny-arcade.com/"},
+        items,
+        "",
+    )
+    root = ET.fromstring(xml)
+    output_items = root.findall("channel/item")
+    assert [item.findtext("title") for item in output_items] == ["[Comic] A Comic", "[Blog] A Post"]
+    assert "https://assets.penny-arcade.com/comic.jpg" in output_items[0].findtext("description")
+    assert "The complete blog body." in output_items[1].findtext("description")
