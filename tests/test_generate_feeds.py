@@ -1,4 +1,4 @@
-from datetime import timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import Mock
 from xml.etree import ElementTree as ET
@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from generate_feeds import (
     build_rss,
+    build_index,
     scrape_comic,
     scrape_penny_arcade,
     scrape_smbc,
@@ -159,3 +160,15 @@ def test_penny_arcade_combines_comic_image_and_blog_post():
     assert 'href="https://www.penny-arcade.com/about"' in blog_description
     assert "Abbreviated summary." not in blog_description
     assert "Related comic" not in blog_description
+
+
+def test_index_shows_last_updated_in_configured_timezone():
+    generated_at = datetime(2026, 9, 7, 11, 0, tzinfo=timezone.utc)
+    output = build_index(
+        {"title": "Feeds", "timezone": "America/Denver"},
+        [("xkcd", "xkcd")],
+        generated_at,
+    )
+    assert 'datetime="2026-09-07T11:00:00+00:00"' in output
+    assert "Last updated:" in output
+    assert "September 7, 2026 at 5:00 AM MDT" in output

@@ -1,6 +1,7 @@
 site:
   title: My webcomic feeds
   description: Personal RSS feeds for webcomics
+  timezone: America/Denver
 
 # Copy this file to comics.yml and add one entry per comic.
 # Selectors use normal CSS selector syntax.

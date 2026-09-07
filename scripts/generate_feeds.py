@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urljoin
 from xml.etree import ElementTree as ET
+from zoneinfo import ZoneInfo
 
 import requests
 import yaml
@@ -301,7 +302,17 @@ def build_rss(config: dict[str, Any], items: list[ComicItem], feed_url: str) -> 
     return ET.tostring(rss, encoding="utf-8", xml_declaration=True)
 
 
-def build_index(site: dict[str, Any], feeds: list[tuple[str, str]]) -> str:
+def build_index(
+    site: dict[str, Any],
+    feeds: list[tuple[str, str]],
+    generated_at: datetime | None = None,
+) -> str:
+    generated_at = generated_at or datetime.now(timezone.utc)
+    local_time = generated_at.astimezone(ZoneInfo(site.get("timezone", "UTC")))
+    updated_label = (
+        f"{local_time.strftime('%B')} {local_time.day}, {local_time.year} at "
+        f"{local_time.strftime('%I:%M %p').lstrip('0')} {local_time.tzname()}"
+    )
     links = "\n".join(
         f'<li><a href="{html.escape(slug)}.xml">{html.escape(name)}</a></li>' for slug, name in feeds
     ) or "<li>No comics are configured yet.</li>"
@@ -309,7 +320,9 @@ def build_index(site: dict[str, Any], feeds: list[tuple[str, str]]) -> str:
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>{html.escape(site.get('title', 'Webcomic feeds'))}</title></head>
 <body><main><h1>{html.escape(site.get('title', 'Webcomic feeds'))}</h1>
-<p>{html.escape(site.get('description', 'Generated RSS feeds'))}</p><ul>{links}</ul></main></body></html>
+<p>{html.escape(site.get('description', 'Generated RSS feeds'))}</p>
+<p>Last updated: <time datetime="{generated_at.isoformat()}">{updated_label}</time></p>
+<ul>{links}</ul></main></body></html>
 """
 
 

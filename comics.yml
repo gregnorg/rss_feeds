@@ -1,6 +1,7 @@
 site:
   title: My webcomic feeds
   description: Personal RSS feeds for webcomics
+  timezone: America/Denver
 
 comics:
   - slug: xkcd
