@@ -233,11 +233,21 @@ def scrape_penny_arcade(config: dict[str, Any], session: requests.Session) -> li
                 published=published,
             ))
         elif "/news/post/" in item_url:
+            page = fetch_soup(session, item_url)
+            sections = page.select(config.get("blog_body_selector", ".post-body > .post-text"))
+            for section in sections:
+                for node in section.select("[href]"):
+                    node["href"] = urljoin(item_url, str(node.get("href")))
+                for node in section.select("[src]"):
+                    node["src"] = urljoin(item_url, str(node.get("src")))
+                for unwanted in section.select("script, style"):
+                    unwanted.decompose()
+            full_body = "\n".join(section.decode_contents().strip() for section in sections)
             results.append(ComicItem(
                 title=f"[Blog] {title}",
                 url=item_url,
                 published=published,
-                content_html=upstream_item.findtext("description", ""),
+                content_html=full_body or upstream_item.findtext("description", ""),
             ))
 
     return results

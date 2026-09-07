@@ -128,12 +128,19 @@ def test_penny_arcade_combines_comic_image_and_blog_post():
         <item><title>A Comic</title><link>https://www.penny-arcade.com/comic/2026/09/07/a-comic</link>
           <description>New Comic: A Comic</description><pubDate>Mon, 07 Sep 2026 07:01:00 +0000</pubDate></item>
         <item><title>A Post</title><link>https://www.penny-arcade.com/news/post/2026/09/07/a-post</link>
-          <description><![CDATA[<p>The complete blog body.</p>]]></description>
+          <description><![CDATA[<p>Abbreviated summary.</p>]]></description>
           <pubDate>Mon, 07 Sep 2026 19:23:00 +0000</pubDate></item>
       </channel></rss>'''
     comic_page = '<meta property="og:image" content="https://assets.penny-arcade.com/comic.jpg">'
+    blog_page = '''<div class="post-body">
+      <section class="post-text"><p>Opening paragraph.</p></section>
+      <aside>Related comic—not part of the post.</aside>
+      <section class="post-text"><p>Rest of the full article. <a href="/about">About</a></p></section>
+    </div>'''
     session = Mock()
-    session.get.side_effect = [FakeResponse(upstream_feed), FakeResponse(comic_page)]
+    session.get.side_effect = [
+        FakeResponse(upstream_feed), FakeResponse(comic_page), FakeResponse(blog_page)
+    ]
     config = {"feed_url": "https://www.penny-arcade.com/feed", "max_items": 10}
 
     items = scrape_penny_arcade(config, session)
@@ -146,4 +153,9 @@ def test_penny_arcade_combines_comic_image_and_blog_post():
     output_items = root.findall("channel/item")
     assert [item.findtext("title") for item in output_items] == ["[Comic] A Comic", "[Blog] A Post"]
     assert "https://assets.penny-arcade.com/comic.jpg" in output_items[0].findtext("description")
-    assert "The complete blog body." in output_items[1].findtext("description")
+    blog_description = output_items[1].findtext("description")
+    assert "Opening paragraph." in blog_description
+    assert "Rest of the full article." in blog_description
+    assert 'href="https://www.penny-arcade.com/about"' in blog_description
+    assert "Abbreviated summary." not in blog_description
+    assert "Related comic" not in blog_description
