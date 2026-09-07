@@ -1,0 +1,12 @@
+site:
+  title: My webcomic feeds
+  description: Personal RSS feeds for webcomics
+
+comics:
+  - slug: xkcd
+    name: xkcd
+    homepage: https://xkcd.com/
+    source: xkcd
+    latest_url: https://xkcd.com/info.0.json
+    item_url_template: https://xkcd.com/{number}/info.0.json
+    max_items: 10

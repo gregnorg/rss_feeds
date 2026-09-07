@@ -1,0 +1,31 @@
+site:
+  title: My webcomic feeds
+  description: Personal RSS feeds for webcomics
+
+# Copy this file to comics.yml and add one entry per comic.
+# Selectors use normal CSS selector syntax.
+comics:
+  # XKCD has a stable JSON metadata endpoint, so it needs no CSS selectors.
+  - slug: xkcd
+    name: xkcd
+    homepage: https://xkcd.com/
+    source: xkcd
+    latest_url: https://xkcd.com/info.0.json
+    item_url_template: https://xkcd.com/{number}/info.0.json
+    max_items: 10
+
+  # Generic HTML example:
+  - slug: example-comic
+    name: Example Comic
+    homepage: https://example.com/comic/
+    discovery_url: https://example.com/comic/archive/
+    item_selector: article.comic-entry
+    link_selector: a.comic-link
+    title_selector: .comic-title
+    date_selector: time
+    date_attribute: datetime
+    image_selector: img.comic
+    # Set this when the archive only links to individual comic pages and the
+    # full-size image is found on those pages.
+    follow_item_links: false
+    max_items: 30
