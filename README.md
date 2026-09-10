@@ -47,6 +47,8 @@ Open `dist/index.html` to inspect the generated feed list.
 
 The schedule uses the `America/Denver` timezone and runs daily at 5:00 AM,
 11:00 AM, 5:00 PM, and 11:00 PM. GitHub handles daylight-saving changes.
+After each deployment, the workflow notifies a WebSub hub so compatible readers
+such as The Old Reader can retrieve new entries without waiting for a polling cycle.
 
 Please keep request volume modest and respect each site's terms, robots policy,
 and creators. If a comic already provides an official RSS feed, prefer it.

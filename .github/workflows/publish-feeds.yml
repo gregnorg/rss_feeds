@@ -58,3 +58,11 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Notify WebSub hub
+        run: |
+          for feed in xkcd smbc penny-arcade; do
+            curl --fail-with-body --retry 3 \
+              --data-urlencode "hub.mode=publish" \
+              --data-urlencode "hub.url=${{ steps.deployment.outputs.page_url }}${feed}.xml" \
+              https://pubsubhubbub.appspot.com/
+          done

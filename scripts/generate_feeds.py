@@ -23,6 +23,7 @@ from bs4 import BeautifulSoup, Tag
 
 USER_AGENT = "personal-webcomic-rss/1.0 (+GitHub Actions)"
 ATOM_NS = "http://www.w3.org/2005/Atom"
+WEBSUB_HUB = "https://pubsubhubbub.appspot.com/"
 ET.register_namespace("atom", ATOM_NS)
 
 
@@ -268,8 +269,10 @@ def build_rss(config: dict[str, Any], items: list[ComicItem], feed_url: str) -> 
     ET.SubElement(channel, "link").text = config.get("homepage") or config["discovery_url"]
     ET.SubElement(channel, "description").text = config.get("description", f"Unofficial feed for {config['name']}")
     ET.SubElement(channel, "lastBuildDate").text = format_datetime(datetime.now(timezone.utc))
+    ET.SubElement(channel, "ttl").text = str(config.get("ttl_minutes", 60))
     if feed_url:
         ET.SubElement(channel, f"{{{ATOM_NS}}}link", {"href": feed_url, "rel": "self", "type": "application/rss+xml"})
+        ET.SubElement(channel, f"{{{ATOM_NS}}}link", {"href": WEBSUB_HUB, "rel": "hub"})
 
     for comic_item in items:
         item = ET.SubElement(channel, "item")
