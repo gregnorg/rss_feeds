@@ -45,8 +45,8 @@ Open `dist/index.html` to inspect the generated feed list.
 4. The workflow's deployment job shows the Pages URL. Subscribe to
    `<Pages URL>/<comic-slug>.xml` in your RSS reader.
 
-The schedule uses the `America/Denver` timezone and runs daily at 5:00 AM,
-11:00 AM, 5:00 PM, and 11:00 PM. GitHub handles daylight-saving changes.
+The schedule runs at minute 17 of every hour. Using a non-zero minute helps
+avoid GitHub Actions' busiest scheduling window at the top of the hour.
 After each deployment, the workflow notifies a WebSub hub so compatible readers
 such as The Old Reader can retrieve new entries without waiting for a polling cycle.
 
